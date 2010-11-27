@@ -1,6 +1,6 @@
-<project name="MyApp" default="deploy-debug" basedir=".">
+<project name="MyApp" default="debug" basedir=".">
     <description>
-        Build file for MyApp
+        Blackberry Playbook AIR SDK build file for MyApp
     </description>
 
     <!--
@@ -75,8 +75,8 @@
 </target>
 
 <!-- 
-    compile
-    =======
+    compile-debug
+    =============
 
     Run this target to compile your app with debugging flags
 -->
