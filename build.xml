@@ -1,4 +1,4 @@
-<project name="MyApp" default="deploy" basedir=".">
+<project name="MyApp" default="deploy-debug" basedir=".">
     <description>
         Build file for MyApp
     </description>
@@ -20,10 +20,7 @@
         - Your app icon is blackberry-tablet-icon.png, and is located in ${src}
         -
         - TODO:
-	- + Create bin-debug if it does not exist
-        - + Handle external libs
-        - + Ensure that this works for multi-file projects
-        - + Fix deploy-debug target
+        - + Verify that this works for shared/static libraries
         - + Add an uninstall target
     -->
 
@@ -39,8 +36,8 @@
 
     <!-- default directory properties -->
     <property name="src" location="src"/>
+    <property name="lib" location="lib"/>
     <property name="build" location="bin-debug"/>
-    <property name="lib" location="bin-debug"/>
 
     <!-- app-specific properties -->
     <property name="app-name" value="MyApp"/>
@@ -51,26 +48,38 @@
 
     <!-- playbook simulator properties -->
     <property name="sim-ip" value="192.xxx.xxx.xxx"/>
-    <property name="sim-pass" value="no-passwd"/>
-    <property name="host-ip" value="127.0.0.1"/>
+    <property name="sim-pass" value="no-password"/>
+    <property name="host-ip" value="192.xxx.xxx.xxx"/>
 
-<!-- compile -->
+
+<!-- 
+    compile
+    =======
+
+    Run this target to compile your app without debugging flags
+-->
 <target name="compile" depends="clean" if="bb-tablet-sdk-home"
         description="compile the app">
     <exec executable="${amxmlc}" dir="${build}">
         <env key="PATH" path="${bb-tablet-sdk-home}/bin:${env.PATH}"/>
         <!--
-         I think I'm not understanding how ant separates spaces in a single arg value
+         I think I'm misunderstanding how ant separates spaces in a single arg value
         -->
         <arg value="-load-config"/>
         <arg value="${bb-tablet-sdk-home}/frameworks/air-config.xml"/>
+        <arg value="-compiler.library-path+=${lib}"/>
         <arg value="-output"/>
         <arg value="${app-swf}"/>
         <arg value="${app-main}"/>
     </exec>
 </target>
 
-<!-- compile-debug -->
+<!-- 
+    compile
+    =======
+
+    Run this target to compile your app with debugging flags
+-->
 <target name="compile-debug" depends="clean" if="bb-tablet-sdk-home"
         description="compile the app with debugging">
     <exec executable="${amxmlc}" dir="${build}">
@@ -78,14 +87,20 @@
         <arg value="-load-config"/>
         <arg value="${bb-tablet-sdk-home}/frameworks/air-config.xml"/>
         <arg value="-compiler.debug"/>
+        <arg value="-compiler.library-path+=${lib}"/>
         <arg value="-output"/>
         <arg value="${app-swf}"/>
         <arg value="${app-main}"/>
     </exec>
 </target>
 
-<!-- create-package -->
-<target name="create-package" depends="compile" if="bb-tablet-sdk-home"
+<!-- 
+    package
+    =======
+
+    Run this target to create the production version of your package
+-->
+<target name="package" depends="compile" if="bb-tablet-sdk-home"
         description="create the app .bar package">
     <exec executable="${bbpack}" dir="${build}">
         <env key="PATH" path="${bb-tablet-sdk-home}/bin:${env.PATH}"/>
@@ -96,13 +111,24 @@
     </exec>
 </target>
 
-<!-- create-package-debug -->
-<target name="create-package-debug" depends="compile-debug" if="bb-tablet-sdk-home"
-        description="create the app .bar debug package">
+<!-- 
+    package-debug
+    =============
+
+    Run this target to create the debugging verson of your package
+-->
+<target name="package-debug" depends="compile-debug" if="bb-tablet-sdk-home"
+        description="create the debug version of the app .bar package">
     <exec executable="${bbpack}" dir="${build}">
         <env key="PATH" path="${bb-tablet-sdk-home}/bin:${env.PATH}"/>
         <arg value="-target"/>
         <arg value="bar-debug"/>
+        <!--
+             interesting...you have to specify your debug host  _here_ ...
+             guess some parameter must be built into the package
+        -->
+        <arg value="-connect"/>
+        <arg value="${host-ip}"/>
         <arg value="-package"/>
         <arg value="${app-bar}"/>
         <arg value="${app-xml}"/>
@@ -110,8 +136,13 @@
     </exec>
 </target>
 
-<!-- deploy -->
-<target name="deploy" depends="create-package" if="bb-tablet-sdk-home"
+<!-- 
+    deploy
+    ======
+
+    Run this target to simply deploy your application
+-->
+<target name="deploy" depends="package" if="bb-tablet-sdk-home"
         description="deploy the app in the standard configuration">
     <exec executable="${bbdeploy}" dir="${build}">
         <env key="PATH" path="${bb-tablet-sdk-home}/bin:${env.PATH}"/>
@@ -124,23 +155,33 @@
     </exec>
 </target>
 
-<!-- deploy-debug -->
-<target name="deploy-debug" depends="create-package-debug" if="bb-tablet-sdk-home"
+<!-- 
+    debug
+    =====
+
+    Run this target to debug your application
+-->
+<target name="debug" depends="package-debug" if="bb-tablet-sdk-home"
         description="deploy the app in a debugging configuration">
     <exec executable="${bbdeploy}" dir="${build}">
         <env key="PATH" path="${bb-tablet-sdk-home}/bin:${env.PATH}"/>
         <arg value="-installApp"/>
         <arg value="-launchApp"/>
-        <arg value="-debugHost"/>
-	<arg value="${host-ip}"/>
-        <arg value="-device"/>
-        <arg value="${sim-ip}"/>
         <arg value="-package"/>
         <arg value="${app-bar}"/>
-    </exec>
+        <arg value="-device"/>
+        <arg value="${sim-ip}"/>
+        <arg value="-password"/>
+        <arg value="${sim-pass}"/>
+     </exec>
 </target>
 
-<!-- clean -->
+<!-- 
+    clean
+    =====
+
+    Run this target to clean out the build directory
+-->
 <target name="clean" description="remove all the compiled files">
     <delete>
         <fileset dir="${build}">
